@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Goal Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+            background-size: cover;
+            background-position: center;
+            background-image: url('https://st4.depositphotos.com/14339380/25078/i/450/depositphotos_250786752-stock-photo-golden-arrow-hit-gold-target.jpg')
+        }
+       
+        .container {
+            margin: 20px auto;
+            max-width: 850px;
+            background: rgba(147, 147, 151, 0.5);
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgb(182, 255, 11);
+        }
+        .goal {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #000000be;  
+            color: rgb(255, 255, 255);  
+            border: 1px solid #32fa00;  
+            border-radius: 5px;
+        }
+        
+        .progress-bar {
+            width: 30%;
+            background-color: #444;
+            border-radius: 5px;
+            margin: 5px 0;
+        }
+        .progress-bar div {
+            height: 17px;
+            width: 1px;
+            background-color: #007BFF;
+            border-radius: 5px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 15px;
+            background-color: #088b7a;
+            color: rgb(0, 0, 0);
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #2b05ff;
+        }
+        input[type="date"], input[type="text"] {
+            margin: 5px;
+            padding: 10px;
+            font-size: 1em;
+            border: 1px solid #940202;
+            border-radius: 5px;
+            width: calc(40% - 22px);
+        }
+        input[type="number"] {
+            width: 60px;
+            margin-left: 10px;
+        }
+        .circle-container {
+            position: relative;
+            width: 150px;
+            height: 150px;
+            margin: 20px auto;
+        }
+        .circle {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: conic-gradient(#0368ff79 var(--percent), #ddd 0);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-weight: bold;
+            font-size: 1.5em;
+        }
+    </style>
+</head>
+<body onload="loadBackground()">
+
+    <div class="container">
+        <div id="message"></div>
+
+        <h3>Termination circle</h3>
+        <div class="circle-container">
+            <div class="circle" id="completionCircle" style="--percent: 0">0%</div>
+        </div>
+
+        <h3>Add a New Goal</h3>
+        <input type="text" id="goalName" placeholder="Enter your goal" required>
+        <input type="date" id="goalEndDate" required>
+        <button onclick="addGoal()">Add Goal</button>
+
+        <h2>Your Goals</h2>
+        <div id="goals"></div>
+    </div>
+
+    <script>
+        const messages = [
+            "You can do it!",
+            "Every small step counts!",
+            "Believe in yourself!",
+            "Keep pushing forward!",
+            "Success is within your reach!"
+        ];
+
+        const completionMessages = [
+            "Congratulations on your achievement!",
+            "Amazing work! You did it!",
+            "Keep up the great work!",
+            "Goal completed! Keep aiming high!",
+            "Fantastic job!"
+        ];
+
+        function showRandomMessage() {
+            const messageBox = document.getElementById('message');
+            const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+            messageBox.innerText = randomMessage;
+        }
+
+        showRandomMessage();
+
+        const goals = JSON.parse(localStorage.getItem('goals')) || [];
+
+        function saveGoals() {
+            localStorage.setItem('goals', JSON.stringify(goals));
+            updateCompletionCircle();
+        }
+
+        function renderGoals() {
+            const goalsContainer = document.getElementById('goals');
+            goalsContainer.innerHTML = '';
+
+            goals.forEach((goal, index) => {
+                const goalDiv = document.createElement('div');
+                goalDiv.className = 'goal';
+
+                const goalInfo = document.createElement('div');
+                goalInfo.style.flex = '1';
+                goalInfo.innerHTML = `
+                    <strong>${goal.name}</strong><br>Start Date: ${goal.startDate}<br>End Date: ${goal.endDate}
+                `;
+
+                const progressBar = document.createElement('div');
+                progressBar.className = 'progress-bar';
+
+                const progress = document.createElement('div');
+                progress.style.width = `${goal.progress}%`;
+                progress.innerText = `${goal.progress}%`;
+                progress.style.color = 'white';
+                progressBar.appendChild(progress);
+
+                const updateProgress = document.createElement('input');
+                updateProgress.type = 'number';
+                updateProgress.min = 0;
+                updateProgress.max = 100;
+                updateProgress.value = goal.progress;
+                updateProgress.onchange = (e) => {
+                    goal.progress = e.target.value;
+                    if (goal.progress == 100) {
+                        alert(completionMessages[Math.floor(Math.random() * completionMessages.length)]);
+                    }
+                    saveGoals();
+                    renderGoals();
+                };
+
+                const editDateButton = document.createElement('button');
+                editDateButton.innerText = 'Edit Date';
+                editDateButton.onclick = () => showEditDate(index);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.innerText = 'Delete';
+                deleteButton.onclick = () => {
+                    goals.splice(index, 1);
+                    saveGoals();
+                    renderGoals();
+                };
+
+                const editDateInput = document.createElement('input');
+                editDateInput.type = 'date';
+                editDateInput.id = `editDate${index}`;
+                editDateInput.style.display = 'none';
+                editDateInput.onchange = (e) => updateGoalDate(index, e.target.value);
+
+                goalDiv.appendChild(goalInfo);
+                goalDiv.appendChild(progressBar);
+                goalDiv.appendChild(updateProgress);
+                goalDiv.appendChild(editDateButton);
+                goalDiv.appendChild(deleteButton);
+                goalDiv.appendChild(editDateInput);
+
+                goalsContainer.appendChild(goalDiv);
+            });
+        }
+
+        function addGoal() {
+            const goalName = document.getElementById('goalName').value;
+            const goalEndDate = document.getElementById('goalEndDate').value;
+
+            if (!goalName || !goalEndDate) {
+                alert('Please enter both the goal name and end date.');
+                return;
+            }
+
+            const newGoal = {
+                name: goalName,
+                startDate: new Date().toLocaleDateString(),
+                endDate: goalEndDate,
+                progress: 0
+            };
+
+            goals.push(newGoal);
+            saveGoals();
+            renderGoals();
+        }
+
+        function showEditDate(index) {
+            document.getElementById(`editDate${index}`).style.display = 'inline';
+        }
+
+        function updateGoalDate(index, newDate) {
+            goals[index].endDate = newDate;
+            saveGoals();
+            renderGoals();
+        }
+
+        function changeBackground() {
+            const file = document.getElementById('backgroundPicker').files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    document.body.style.backgroundImage = `url(${e.target.result})`;
+                    localStorage.setItem('backgroundImage', e.target.result);
+                };
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function loadBackground() {
+            const savedBackground = localStorage.getItem('backgroundImage');
+            if (savedBackground) {
+                document.body.style.backgroundImage = `url(${savedBackground})`;
+            }
+        }
+
+        function updateCompletionCircle() {
+            const totalGoals = goals.length;
+            const totalProgress = goals.reduce((acc, goal, i) => acc + parseInt(goal.progress || 0, 10), 0);
+            const averageProgress = totalGoals > 0 ? Math.floor(totalProgress / totalGoals) : 0;
+
+            const completionCircle = document.getElementById('completionCircle');
+            completionCircle.style.setProperty('--percent', `${averageProgress}%`);
+            completionCircle.textContent = `${averageProgress}%`;
+        }
+
+        window.onload = function() {
+            loadBackground();
+            renderGoals();
+            updateCompletionCircle();  
+        }
+    </script>
+</body>
+</html>
